@@ -1,0 +1,78 @@
+start_profile:
+  name: Start profile
+  description: Start a saved ramp profile.
+  fields:
+    controller_id:
+      name: Controller ID
+      required: true
+      selector:
+        text:
+    profile:
+      name: Profile ID
+      required: true
+      selector:
+        text:
+start:
+  name: Start custom ramp
+  description: Start a one-time ramp.
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    target:
+      required: true
+      selector:
+        number:
+          mode: box
+    duration:
+      required: true
+      selector:
+        number:
+          min: 0.1
+          max: 86400
+          mode: box
+    curve:
+      selector:
+        select:
+          options: [linear, ease_in, ease_out, s_curve, step, custom]
+    steps:
+      selector:
+        number:
+          min: 1
+          max: 10000
+          mode: box
+pause:
+  name: Pause
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+resume:
+  name: Resume
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+stop:
+  name: Stop
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+save_profile:
+  name: Save profile
+  description: Create or replace a profile. Primarily used by the dashboard editor.
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    profile:
+      required: true
+      selector:
+        object:
+

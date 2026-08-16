@@ -1,0 +1,23 @@
+{
+  "title": "Vesaci Ramp Controller",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create Ramp Controller",
+        "description": "Select the numeric entity controlled by this ramp.",
+        "data": {"target_entity": "Target entity"}
+      }
+    },
+    "abort": {"already_configured": "This entity already has a Ramp Controller."}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ramp profiles",
+        "description": "Profiles can also be edited with the dashboard card.",
+        "data": {"profiles_json": "Profiles (JSON)", "interruption_mode": "When another ramp starts"}
+      }
+    },
+    "error": {"invalid_profiles": "The profile JSON is invalid."}
+  }
+}

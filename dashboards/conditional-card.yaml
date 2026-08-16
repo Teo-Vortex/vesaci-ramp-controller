@@ -1,0 +1,6 @@
+type: conditional
+conditions:
+  - condition: screen
+    media_query: "(min-width: 600px)"
+card:
+  type: custom:vesaci-ramp-controller-card
