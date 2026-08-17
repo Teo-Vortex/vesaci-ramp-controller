@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0-test.2
+
+- Replace paired Quick Action templates with independent time and target selectors.
+- Add one Start button for the selected quick duration/target combination.
+- Keep Quick Action priority 70 in the conflict arbiter.
+
 ## 0.6.0-test.1
 
 - Allow STOP and other buttons to update the UI immediately while focused.

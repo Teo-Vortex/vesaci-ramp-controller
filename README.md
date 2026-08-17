@@ -20,7 +20,7 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 - Compact dashboard card for normal operation
 - Tabbed management panel with Overview, Profiles, Quick Actions, Daily Plan, and Settings
 - Priority-based conflict arbitration with an activity log
-- Editable two-row Quick Actions card
+- Quick Action card with independent time and target selectors
 - Visual 24-hour Daily Plan with deadline-based and continuous transitions
 - Home Assistant actions for automations
 - Bulgarian and English setup translations

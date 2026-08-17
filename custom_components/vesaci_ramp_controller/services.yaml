@@ -46,6 +46,26 @@ execute_quick:
       required: true
       selector:
         text:
+start_quick:
+  name: Start quick ramp
+  description: Start a quick ramp using an independently selected duration and target.
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    minutes:
+      required: true
+      selector:
+        number:
+          min: 0.1
+          max: 1440
+          mode: box
+    target:
+      required: true
+      selector:
+        number:
+          mode: box
 save_quick_actions:
   name: Save quick actions
   fields:

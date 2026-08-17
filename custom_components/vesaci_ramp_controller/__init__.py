@@ -114,6 +114,18 @@ def _register_services(hass):
             call.data["action_id"]
         )
 
+    async def start_quick(call: ServiceCall):
+        await _controller(hass, call.data["controller_id"]).async_start_custom(
+            float(call.data["target"]),
+            float(call.data["minutes"]) * 60,
+            "s_curve",
+            20,
+            "auto",
+            source="quick_action",
+            priority=70,
+            action_id="quick_custom",
+        )
+
     async def save_quick_actions(call: ServiceCall):
         controller = _controller(hass, call.data["controller_id"])
         actions = json.loads(call.data["actions"]) if isinstance(call.data["actions"], str) else call.data["actions"]
@@ -173,6 +185,11 @@ def _register_services(hass):
     hass.services.async_register(DOMAIN, "execute_quick", execute_quick, schema=vol.Schema({
         vol.Required("controller_id"): cv.string,
         vol.Required("action_id"): cv.string,
+    }))
+    hass.services.async_register(DOMAIN, "start_quick", start_quick, schema=vol.Schema({
+        vol.Required("controller_id"): cv.string,
+        vol.Required("minutes"): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
+        vol.Required("target"): vol.Coerce(float),
     }))
     hass.services.async_register(DOMAIN, "save_quick_actions", save_quick_actions, schema=vol.Schema({
         vol.Required("controller_id"): cv.string,
