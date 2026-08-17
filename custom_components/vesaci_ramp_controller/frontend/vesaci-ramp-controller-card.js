@@ -4,11 +4,17 @@ class VesaciRampController extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._controller = null;
     this._profileId = null;
+    this._draft = null;
+    this._draftKey = null;
+    this._editing = false;
   }
 
   setConfig(config) { this.config = config || {}; this.render(); }
   set panel(value) { this._panel = value; }
-  set hass(value) { this._hass = value; this.render(); }
+  set hass(value) {
+    this._hass = value;
+    if (!this._editing) this.render();
+  }
   getCardSize() { return 7; }
 
   controllers() {
@@ -29,7 +35,15 @@ class VesaciRampController extends HTMLElement {
   profile(item) {
     const profiles = item?.state.attributes.profiles || [];
     const id = this._profileId || item.state.attributes.selected_profile || profiles[0]?.id;
-    return profiles.find(p => p.id === id) || profiles[0];
+    const stored = profiles.find(p => p.id === id) || profiles[0];
+    if (!stored) return null;
+    const key = `${item.state.attributes.controller_id}:${stored.id}`;
+    if (this._draftKey !== key) {
+      this._draftKey = key;
+      this._draft = JSON.parse(JSON.stringify(stored));
+      this._editing = false;
+    }
+    return this._draft;
   }
 
   async call(service, data = {}) {
@@ -76,6 +90,7 @@ class VesaciRampController extends HTMLElement {
         </svg>
         <div class="fields">
           <label>Name<input id="name" value="${this.esc(profile.name)}"></label>
+          <label>Direction<select id="direction">${["auto","up","down"].map(x=>`<option ${x===(profile.direction || "auto")?"selected":""}>${x}</option>`).join("")}</select></label>
           <label>Target<input id="target" type="number" value="${profile.target}"></label>
           <label>Duration (s)<input id="duration" type="number" min="0.1" value="${profile.duration}"></label>
           <label>Curve<select id="curve">${["linear","ease_in","ease_out","s_curve","step","custom"].map(x=>`<option ${x===profile.curve?"selected":""}>${x}</option>`).join("")}</select></label>
@@ -88,8 +103,8 @@ class VesaciRampController extends HTMLElement {
 
   bind(item, profile, points) {
     const $ = id => this.shadowRoot.getElementById(id);
-    $("controller").onchange = e => { this._controller = e.target.value; this._profileId = null; this.render(); };
-    $("profile").onchange = e => { this._profileId = e.target.value; this.render(); };
+    $("controller").onchange = e => { this._controller = e.target.value; this._profileId = null; this._draftKey = null; this._draft = null; this._editing = false; this.render(); };
+    $("profile").onchange = e => { this._profileId = e.target.value; this._draftKey = null; this._draft = null; this._editing = false; this.render(); };
     $("start").onclick = () => this.call("start_profile", { profile: profile.id });
     $("pause").onclick = () => this.call("pause"); $("resume").onclick = () => this.call("resume"); $("stop").onclick = () => this.call("stop");
     $("graph").onclick = e => {
@@ -98,14 +113,30 @@ class VesaciRampController extends HTMLElement {
       const x = Math.max(0, Math.min(1, ((e.clientX-rect.left)/rect.width*600-20)/560));
       const y = Math.max(0, Math.min(1, (220-(e.clientY-rect.top)/rect.height*240)/180));
       profile.points = [...points, [Number(x.toFixed(3)), Number(y.toFixed(3))]].sort((a,b)=>a[0]-b[0]);
-      profile.curve = "custom"; this.render();
+      profile.curve = "custom"; this._editing = true; this.render();
     };
     this.shadowRoot.querySelectorAll(".point").forEach(node => node.oncontextmenu = e => {
-      e.preventDefault(); const i = Number(node.dataset.index); if (i && i < points.length-1) { profile.points = points.filter((_,j)=>j!==i); this.render(); }
+      e.preventDefault(); const i = Number(node.dataset.index); if (i && i < points.length-1) { profile.points = points.filter((_,j)=>j!==i); this._editing = true; this.render(); }
+    });
+    const updateDraft = () => {
+      profile.name = $("name").value;
+      profile.direction = $("direction").value;
+      profile.target = Number($("target").value);
+      profile.duration = Number($("duration").value);
+      profile.curve = $("curve").value;
+      profile.steps = Number($("steps").value);
+      this._editing = true;
+    };
+    ["name", "direction", "target", "duration", "curve", "steps"].forEach(id => {
+      $(id).oninput = updateDraft;
+      $(id).onchange = updateDraft;
     });
     $("save").onclick = async () => {
-      const updated = {...profile, name: $("name").value, target: Number($("target").value), duration: Number($("duration").value), curve: $("curve").value, steps: Number($("steps").value), points: profile.points || points};
+      updateDraft();
+      const updated = {...profile, points: profile.points || points};
       await this.call("save_profile", { profile: JSON.stringify(updated) });
+      this._editing = false;
+      this.render();
     };
   }
 

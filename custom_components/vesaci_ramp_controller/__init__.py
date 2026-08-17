@@ -83,7 +83,7 @@ def _register_services(hass):
     async def start(call: ServiceCall):
         await _controller(hass, call.data["controller_id"]).async_start_custom(
             call.data["target"], call.data["duration"], call.data.get("curve", "linear"),
-            call.data.get("steps", 20)
+            call.data.get("steps", 20), call.data.get("direction", "auto")
         )
 
     async def simple(call: ServiceCall):
@@ -114,6 +114,7 @@ def _register_services(hass):
         vol.Required("controller_id"): cv.string,
         vol.Required("target"): vol.Coerce(float),
         vol.Required("duration"): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
+        vol.Optional("direction", default="auto"): vol.In(["auto", "up", "down"]),
         vol.Optional("curve", default="linear"): vol.In(["linear", "ease_in", "ease_out", "s_curve", "step", "custom"]),
         vol.Optional("steps", default=20): vol.All(vol.Coerce(int), vol.Range(min=1, max=10000)),
     }))

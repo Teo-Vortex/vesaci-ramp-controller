@@ -11,6 +11,7 @@ DEFAULT_PROFILES = [
     {
         "id": "default",
         "name": "Default",
+        "direction": "auto",
         "target": 100.0,
         "duration": 60.0,
         "curve": "linear",
@@ -23,4 +24,3 @@ DEFAULT_PROFILES = [
 
 CURVES = ("linear", "ease_in", "ease_out", "s_curve", "step", "custom")
 INTERRUPTION_MODES = ("restart", "queue", "ignore")
-

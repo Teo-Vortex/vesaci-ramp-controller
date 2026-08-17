@@ -98,3 +98,5 @@ def _validate_profiles(profiles):
         ids.add(profile["id"])
         if float(profile["duration"]) <= 0:
             raise ValueError
+        if profile.get("direction", "auto") not in ("auto", "up", "down"):
+            raise ValueError

@@ -64,11 +64,19 @@ class RampController:
             self._async_run(profile), f"ramp_{self.entry.entry_id}_{profile_id}"
         )
 
-    async def async_start_custom(self, target: float, duration: float, curve: str = "linear", steps: int = 20) -> None:
+    async def async_start_custom(
+        self,
+        target: float,
+        duration: float,
+        curve: str = "linear",
+        steps: int = 20,
+        direction: str = "auto",
+    ) -> None:
         await self.async_stop()
         profile = {
             "id": "custom",
             "name": "Custom",
+            "direction": direction,
             "target": target,
             "duration": duration,
             "curve": curve,
@@ -140,7 +148,15 @@ class RampController:
         try:
             start = self.current_value()
             target = float(profile["target"])
+            direction = profile.get("direction", "auto")
             duration = max(0.1, float(profile["duration"]))
+            if (direction == "up" and target <= start) or (
+                direction == "down" and target >= start
+            ):
+                self.state = RampState(
+                    "complete", profile["id"], start, target, 1.0, 0.0
+                )
+                return
             if profile.get("step_mode") == "interval":
                 interval = max(1.0, float(profile.get("interval", 5)))
             else:
