@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Reorganize the editor into clear control, curve, target, frequency, and schedule sections.
+- Add an optional daily UP/DOWN schedule using the Home Assistant time zone.
+- Render linear, ease-in, ease-out, S-curve, and step presets accurately in the graph.
+- Display DOWN curves in the descending direction.
+- Normalize custom points and support drag-to-edit and right-click removal.
+
 ## 0.2.0
 
 - Add lower and upper targets to every profile.

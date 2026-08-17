@@ -46,6 +46,7 @@ async def async_setup_entry(hass, entry) -> bool:
 
     controller = RampController(hass, entry, notify)
     hass.data[DOMAIN][entry.entry_id] = {"controller": controller, "listeners": listeners}
+    controller.setup_schedules()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
@@ -53,7 +54,7 @@ async def async_setup_entry(hass, entry) -> bool:
 
 async def async_unload_entry(hass, entry) -> bool:
     controller = hass.data[DOMAIN][entry.entry_id]["controller"]
-    await controller.async_stop()
+    await controller.async_shutdown()
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)

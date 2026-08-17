@@ -108,3 +108,8 @@ def _validate_profiles(profiles):
                 raise ValueError
         if profile.get("direction", "auto") not in ("auto", "up", "down"):
             raise ValueError
+        for key in ("up_time", "down_time"):
+            if key in profile and not re.fullmatch(
+                r"(?:[01]\d|2[0-3]):[0-5]\d", str(profile[key])
+            ):
+                raise ValueError

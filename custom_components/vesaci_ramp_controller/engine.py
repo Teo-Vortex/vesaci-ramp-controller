@@ -10,6 +10,7 @@ import time
 from typing import Any, Callable
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.event import async_track_time_change
 
 
 @dataclass
@@ -37,6 +38,41 @@ class RampController:
         self._pause_event = asyncio.Event()
         self._pause_event.set()
         self._queue: deque[tuple[str, str | None]] = deque()
+        self._schedule_unsubs: list[Callable[[], None]] = []
+
+    def setup_schedules(self) -> None:
+        """Register daily UP and DOWN profile schedules in HA local time."""
+        for unsubscribe in self._schedule_unsubs:
+            unsubscribe()
+        self._schedule_unsubs.clear()
+        for profile in self.profiles:
+            if not profile.get("schedule_enabled", False):
+                continue
+            for direction, key in (("up", "up_time"), ("down", "down_time")):
+                value = profile.get(key)
+                if not value:
+                    continue
+                hour, minute = (int(part) for part in value.split(":"))
+
+                async def scheduled_start(now, profile_id=profile["id"], run_direction=direction):
+                    await self.async_start_profile(profile_id, run_direction)
+
+                self._schedule_unsubs.append(
+                    async_track_time_change(
+                        self.hass,
+                        scheduled_start,
+                        hour=hour,
+                        minute=minute,
+                        second=0,
+                    )
+                )
+
+    async def async_shutdown(self) -> None:
+        """Stop execution and remove schedule listeners."""
+        for unsubscribe in self._schedule_unsubs:
+            unsubscribe()
+        self._schedule_unsubs.clear()
+        await self.async_stop()
 
     @property
     def profiles(self) -> list[dict[str, Any]]:

@@ -21,6 +21,9 @@ DEFAULT_PROFILES = [
         "step_mode": "count",
         "steps": 20,
         "interval": 5.0,
+        "schedule_enabled": False,
+        "up_time": "19:20",
+        "down_time": "23:10",
         "up_points": [[0.0, 0.0], [1.0, 1.0]],
         "down_points": [[0.0, 0.0], [1.0, 1.0]],
     }
