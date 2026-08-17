@@ -7,6 +7,21 @@ CONF_TARGET_ENTITY = "target_entity"
 CONF_PROFILES = "profiles"
 CONF_INTERRUPTION_MODE = "interruption_mode"
 CONF_SELECTED_PROFILE = "selected_profile"
+CONF_QUICK_ACTIONS = "quick_actions"
+CONF_DAILY_PLAN = "daily_plan"
+CONF_CONFLICT_POLICY = "conflict_policy"
+
+DEFAULT_QUICK_ACTIONS = [
+    {"id": "quick_1", "name": "Quick 1", "minutes": 5, "target": 100.0, "curve": "linear"},
+    {"id": "quick_2", "name": "Quick 2", "minutes": 15, "target": 200.0, "curve": "linear"},
+    {"id": "quick_3", "name": "Quick 3", "minutes": 30, "target": 300.0, "curve": "s_curve"},
+    {"id": "quick_4", "name": "Quick 4", "minutes": 60, "target": 500.0, "curve": "s_curve"},
+]
+
+DEFAULT_DAILY_PLAN = {
+    "enabled": False,
+    "points": [],
+}
 
 DEFAULT_PROFILES = [
     {

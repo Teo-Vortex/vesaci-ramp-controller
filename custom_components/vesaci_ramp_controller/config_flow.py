@@ -58,13 +58,12 @@ class VesaciRampOptionsFlow(config_entries.OptionsFlow):
             except (ValueError, TypeError, json.JSONDecodeError):
                 errors["base"] = "invalid_profiles"
             else:
-                return self.async_create_entry(
-                    title="",
-                    data={
-                        CONF_PROFILES: parsed,
-                        CONF_INTERRUPTION_MODE: user_input[CONF_INTERRUPTION_MODE],
-                    },
-                )
+                options = dict(self.config_entry.options)
+                options.update({
+                    CONF_PROFILES: parsed,
+                    CONF_INTERRUPTION_MODE: user_input[CONF_INTERRUPTION_MODE],
+                })
+                return self.async_create_entry(title="", data=options)
         schema = vol.Schema(
             {
                 vol.Required(

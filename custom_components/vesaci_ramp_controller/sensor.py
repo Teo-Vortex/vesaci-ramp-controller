@@ -39,7 +39,12 @@ class RampStatusSensor(RampEntity, SensorEntity):
             "progress": round(self.controller.state.progress * 100, 1),
             "remaining": round(self.controller.state.remaining, 1),
             "action": self.controller.state.direction,
+            "source": self.controller.state.source,
+            "priority": self.controller.state.priority,
             "profiles": self.controller.profiles,
+            "quick_actions": self.controller.quick_actions,
+            "daily_plan": self.controller.daily_plan,
+            "activity_log": list(self.controller.activity_log),
             "error": self.controller.state.error,
         }
 

@@ -12,7 +12,14 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
 from .config_flow import _validate_profiles
-from .const import CONF_PROFILES, CONF_SELECTED_PROFILE, DOMAIN, PLATFORMS
+from .const import (
+    CONF_DAILY_PLAN,
+    CONF_PROFILES,
+    CONF_QUICK_ACTIONS,
+    CONF_SELECTED_PROFILE,
+    DOMAIN,
+    PLATFORMS,
+)
 from .engine import RampController
 
 
@@ -80,7 +87,10 @@ def _controller(hass, controller_id):
 def _register_services(hass):
     async def start_profile(call: ServiceCall):
         await _controller(hass, call.data["controller_id"]).async_start_profile(
-            call.data["profile"], call.data.get("direction")
+            call.data["profile"],
+            call.data.get("direction"),
+            source=call.data.get("source", "automation"),
+            priority=80 if call.data.get("source") == "manual" else 60,
         )
 
     async def select_profile(call: ServiceCall):
@@ -97,6 +107,27 @@ def _register_services(hass):
             call.data["target"], call.data["duration"], call.data.get("curve", "linear"),
             call.data.get("steps", 20), call.data.get("direction", "auto")
         )
+
+    async def execute_quick(call: ServiceCall):
+        await _controller(hass, call.data["controller_id"]).async_execute_quick(
+            call.data["action_id"]
+        )
+
+    async def save_quick_actions(call: ServiceCall):
+        controller = _controller(hass, call.data["controller_id"])
+        actions = json.loads(call.data["actions"]) if isinstance(call.data["actions"], str) else call.data["actions"]
+        _validate_quick_actions(actions)
+        options = dict(controller.entry.options)
+        options[CONF_QUICK_ACTIONS] = actions
+        hass.config_entries.async_update_entry(controller.entry, options=options)
+
+    async def save_daily_plan(call: ServiceCall):
+        controller = _controller(hass, call.data["controller_id"])
+        plan = json.loads(call.data["plan"]) if isinstance(call.data["plan"], str) else call.data["plan"]
+        _validate_daily_plan(plan)
+        options = dict(controller.entry.options)
+        options[CONF_DAILY_PLAN] = plan
+        hass.config_entries.async_update_entry(controller.entry, options=options)
 
     async def simple(call: ServiceCall):
         await getattr(_controller(hass, call.data["controller_id"]), f"async_{call.service}")()
@@ -124,6 +155,7 @@ def _register_services(hass):
         vol.Required("controller_id"): cv.string,
         vol.Required("profile"): cv.string,
         vol.Optional("direction"): vol.In(["up", "down"]),
+        vol.Optional("source"): vol.In(["manual", "automation"]),
     }))
     hass.services.async_register(DOMAIN, "select_profile", select_profile, schema=vol.Schema({
         vol.Required("controller_id"): cv.string,
@@ -137,8 +169,42 @@ def _register_services(hass):
         vol.Optional("curve", default="linear"): vol.In(["linear", "ease_in", "ease_out", "s_curve", "step", "custom"]),
         vol.Optional("steps", default=20): vol.All(vol.Coerce(int), vol.Range(min=1, max=10000)),
     }))
+    hass.services.async_register(DOMAIN, "execute_quick", execute_quick, schema=vol.Schema({
+        vol.Required("controller_id"): cv.string,
+        vol.Required("action_id"): cv.string,
+    }))
+    hass.services.async_register(DOMAIN, "save_quick_actions", save_quick_actions, schema=vol.Schema({
+        vol.Required("controller_id"): cv.string,
+        vol.Required("actions"): vol.Any(str, list),
+    }))
+    hass.services.async_register(DOMAIN, "save_daily_plan", save_daily_plan, schema=vol.Schema({
+        vol.Required("controller_id"): cv.string,
+        vol.Required("plan"): vol.Any(str, dict),
+    }))
     for service in ("pause", "resume", "stop"):
         hass.services.async_register(DOMAIN, service, simple, schema=common)
     hass.services.async_register(DOMAIN, "save_profile", save_profile, schema=vol.Schema({
         vol.Required("controller_id"): cv.string, vol.Required("profile"): vol.Any(str, dict)
     }))
+
+
+def _validate_quick_actions(actions):
+    if not isinstance(actions, list) or not actions:
+        raise ValueError("At least one quick action is required")
+    for action in actions:
+        if not all(key in action for key in ("id", "name", "minutes", "target")):
+            raise ValueError("Invalid quick action")
+        if float(action["minutes"]) <= 0:
+            raise ValueError("Quick action duration must be positive")
+
+
+def _validate_daily_plan(plan):
+    if not isinstance(plan, dict) or not isinstance(plan.get("points", []), list):
+        raise ValueError("Invalid daily plan")
+    seen_times = set()
+    for point in plan.get("points", []):
+        if not all(key in point for key in ("id", "time", "target")):
+            raise ValueError("Invalid daily point")
+        if point["time"] in seen_times:
+            raise ValueError("Daily point times must be unique")
+        seen_times.add(point["time"])

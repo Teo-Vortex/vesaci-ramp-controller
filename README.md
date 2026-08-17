@@ -18,6 +18,10 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 - Profile dropdown and status/progress/target/remaining entities
 - Sidebar profile editor with a visual curve graph
 - Compact dashboard card for normal operation
+- Tabbed management panel with Overview, Profiles, Quick Actions, Daily Plan, and Settings
+- Priority-based conflict arbitration with an activity log
+- Editable two-row Quick Actions card
+- Visual 24-hour Daily Plan with deadline-based and continuous transitions
 - Home Assistant actions for automations
 - Bulgarian and English setup translations
 
@@ -65,6 +69,10 @@ The sidebar panel requires no manual setup. YAML examples for embedding the same
 ## Safety
 
 The controller clamps commands to the target entity's reported minimum and maximum and rounds to its supported step. Commands that would repeat the current value are skipped.
+
+## Conflict priorities
+
+Only one ramp runs at a time. Stop has the highest priority, followed by manual controls, Quick Actions, HA automations, Daily Plan, and profile schedules. When Daily Plan is enabled, profile schedules are not registered.
 
 ## License
 

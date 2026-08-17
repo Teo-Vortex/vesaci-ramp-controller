@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0-test
+
+- Add tabbed Overview, Profiles, Quick Actions, Daily Plan, and Settings interface.
+- Add a central priority arbiter and activity log.
+- Add editable Quick Actions and a dedicated two-row dashboard card.
+- Add a visual 24-hour Daily Plan with Duration and Continuous transitions.
+- Calculate ramp start times from target deadlines and durations.
+- Disable profile schedules while Daily Plan is active to avoid scheduler conflicts.
+
 ## 0.5.1
 
 - Keep dropdowns and fields open while Home Assistant state updates arrive.

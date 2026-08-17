@@ -12,7 +12,13 @@ from typing import Any, Callable
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
 
-from .const import CONF_SELECTED_PROFILE
+from .const import (
+    CONF_DAILY_PLAN,
+    CONF_QUICK_ACTIONS,
+    CONF_SELECTED_PROFILE,
+    DEFAULT_DAILY_PLAN,
+    DEFAULT_QUICK_ACTIONS,
+)
 
 
 @dataclass
@@ -25,6 +31,8 @@ class RampState:
     remaining: float = 0.0
     error: str | None = None
     direction: str | None = None
+    source: str | None = None
+    priority: int = 0
 
 
 class RampController:
@@ -47,12 +55,17 @@ class RampController:
         self._pause_event.set()
         self._queue: deque[tuple[str, str | None]] = deque()
         self._schedule_unsubs: list[Callable[[], None]] = []
+        self._active_priority = 0
+        self.activity_log: deque[dict[str, Any]] = deque(maxlen=20)
 
     def setup_schedules(self) -> None:
         """Register daily UP and DOWN profile schedules in HA local time."""
         for unsubscribe in self._schedule_unsubs:
             unsubscribe()
         self._schedule_unsubs.clear()
+        if self.daily_plan.get("enabled") and self.daily_plan.get("points"):
+            self._setup_daily_plan()
+            return
         for profile in self.profiles:
             if not profile.get("schedule_enabled", False):
                 continue
@@ -63,7 +76,9 @@ class RampController:
                 hour, minute = (int(part) for part in value.split(":"))
 
                 async def scheduled_start(now, profile_id=profile["id"], run_direction=direction):
-                    await self.async_start_profile(profile_id, run_direction)
+                    await self.async_start_profile(
+                        profile_id, run_direction, source="profile_schedule", priority=30
+                    )
 
                 self._schedule_unsubs.append(
                     async_track_time_change(
@@ -74,6 +89,39 @@ class RampController:
                         second=0,
                     )
                 )
+
+    def _setup_daily_plan(self) -> None:
+        points = sorted(
+            self.daily_plan.get("points", []), key=lambda point: point["time"]
+        )
+        for index, point in enumerate(points):
+            target_minute = _time_to_minute(point["time"])
+            if point.get("transition", "duration") == "continuous" and len(points) > 1:
+                previous = points[index - 1]
+                start_minute = _time_to_minute(previous["time"])
+                duration_minutes = (target_minute - start_minute) % 1440
+            else:
+                duration_minutes = max(1.0, float(point.get("duration", 30)))
+                start_minute = int((target_minute - duration_minutes) % 1440)
+            hour, minute = divmod(int(start_minute), 60)
+
+            async def start_daily(now, plan_point=dict(point), minutes=duration_minutes):
+                await self.async_start_custom(
+                    float(plan_point["target"]),
+                    float(minutes) * 60,
+                    plan_point.get("curve", "linear"),
+                    int(plan_point.get("steps", 20)),
+                    "auto",
+                    source="daily_plan",
+                    priority=40,
+                    action_id=plan_point["id"],
+                )
+
+            self._schedule_unsubs.append(
+                async_track_time_change(
+                    self.hass, start_daily, hour=hour, minute=minute, second=0
+                )
+            )
 
     async def async_shutdown(self) -> None:
         """Stop execution and remove schedule listeners."""
@@ -86,6 +134,14 @@ class RampController:
     def profiles(self) -> list[dict[str, Any]]:
         return self.entry.options.get("profiles", self.entry.data.get("profiles", []))
 
+    @property
+    def quick_actions(self) -> list[dict[str, Any]]:
+        return self.entry.options.get(CONF_QUICK_ACTIONS, DEFAULT_QUICK_ACTIONS)
+
+    @property
+    def daily_plan(self) -> dict[str, Any]:
+        return self.entry.options.get(CONF_DAILY_PLAN, DEFAULT_DAILY_PLAN)
+
     def profile(self, profile_id: str) -> dict[str, Any]:
         for profile in self.profiles:
             if profile["id"] == profile_id:
@@ -93,7 +149,11 @@ class RampController:
         raise ValueError(f"Unknown profile: {profile_id}")
 
     async def async_start_profile(
-        self, profile_id: str, direction: str | None = None
+        self,
+        profile_id: str,
+        direction: str | None = None,
+        source: str = "manual",
+        priority: int = 80,
     ) -> None:
         profile = self.profile(profile_id)
         profile = dict(profile)
@@ -102,6 +162,9 @@ class RampController:
         self.selected_profile = profile_id
         mode = self.entry.options.get("interruption_mode", "restart")
         if self._task and not self._task.done():
+            if priority < self._active_priority:
+                self._log("ignored", source, profile_id, "lower_priority")
+                return
             if mode == "ignore":
                 return
             if mode == "queue":
@@ -110,8 +173,10 @@ class RampController:
                 return
             await self.async_stop()
         self._task = self.hass.async_create_task(
-            self._async_run(profile), f"ramp_{self.entry.entry_id}_{profile_id}"
+            self._async_run(profile, source, priority),
+            f"ramp_{self.entry.entry_id}_{profile_id}",
         )
+        self._active_priority = priority
 
     async def async_start_custom(
         self,
@@ -120,10 +185,16 @@ class RampController:
         curve: str = "linear",
         steps: int = 20,
         direction: str = "auto",
+        source: str = "automation",
+        priority: int = 60,
+        action_id: str = "custom",
     ) -> None:
+        if self._task and not self._task.done() and priority < self._active_priority:
+            self._log("ignored", source, action_id, "lower_priority")
+            return
         await self.async_stop()
         profile = {
-            "id": "custom",
+            "id": action_id,
             "name": "Custom",
             "direction": direction,
             "target": target,
@@ -135,7 +206,26 @@ class RampController:
             "points": [[0.0, 0.0], [1.0, 1.0]],
         }
         self._task = self.hass.async_create_task(
-            self._async_run(profile), f"ramp_{self.entry.entry_id}_custom"
+            self._async_run(profile, source, priority),
+            f"ramp_{self.entry.entry_id}_{action_id}",
+        )
+        self._active_priority = priority
+
+    async def async_execute_quick(self, action_id: str) -> None:
+        action = next(
+            (item for item in self.quick_actions if item["id"] == action_id), None
+        )
+        if action is None:
+            raise ValueError(f"Unknown quick action: {action_id}")
+        await self.async_start_custom(
+            float(action["target"]),
+            float(action["minutes"]) * 60,
+            action.get("curve", "linear"),
+            int(action.get("steps", 20)),
+            "auto",
+            source="quick_action",
+            priority=70,
+            action_id=action_id,
         )
 
     async def async_pause(self) -> None:
@@ -163,6 +253,9 @@ class RampController:
         self.state.status = "idle"
         self.state.remaining = 0
         self.state.direction = None
+        self.state.source = None
+        self.state.priority = 0
+        self._active_priority = 0
         self.on_change()
 
     def current_value(self) -> float:
@@ -194,7 +287,9 @@ class RampController:
             blocking=True,
         )
 
-    async def _async_run(self, profile: dict[str, Any]) -> None:
+    async def _async_run(
+        self, profile: dict[str, Any], source: str, priority: int
+    ) -> None:
         try:
             start = self.current_value()
             direction = profile.get("direction", "auto")
@@ -223,6 +318,10 @@ class RampController:
                 self.state = RampState(
                     "complete", profile["id"], start, target, 1.0, 0.0
                 )
+                self.state.direction = direction
+                self.state.source = source
+                self.state.priority = priority
+                self._log("completed", source, profile["id"], "already_at_target")
                 return
             if profile.get("step_mode") == "interval":
                 interval = max(1.0, float(profile.get("interval", 5)))
@@ -233,6 +332,9 @@ class RampController:
             paused_total = 0.0
             self.state = RampState("running", profile["id"], start, target, 0, duration)
             self.state.direction = direction
+            self.state.source = source
+            self.state.priority = priority
+            self._log("started", source, profile["id"], direction)
             self.on_change()
             while True:
                 if not self._pause_event.is_set():
@@ -253,6 +355,7 @@ class RampController:
             self.state.status = "complete"
             self.state.progress = 1.0
             self.state.remaining = 0.0
+            self._log("completed", source, profile["id"], direction)
         except asyncio.CancelledError:
             raise
         except Exception as err:  # surfaced as entity state
@@ -261,9 +364,15 @@ class RampController:
         finally:
             self.on_change()
             self._task = None
+            self._active_priority = 0
             if self._queue:
                 next_profile, next_direction = self._queue.popleft()
                 await self.async_start_profile(next_profile, next_direction)
+
+    def _log(self, event: str, source: str, action: str, detail: str) -> None:
+        self.activity_log.appendleft(
+            {"event": event, "source": source, "action": action, "detail": detail}
+        )
 
 
 def _same_number(current: str, new: float) -> bool:
@@ -271,6 +380,11 @@ def _same_number(current: str, new: float) -> bool:
         return math.isclose(float(current), new, rel_tol=0, abs_tol=1e-9)
     except (TypeError, ValueError):
         return False
+
+
+def _time_to_minute(value: str) -> int:
+    hour, minute = (int(part) for part in value.split(":"))
+    return hour * 60 + minute
 
 
 def curve_value(progress: float, curve: str, points=None) -> float:

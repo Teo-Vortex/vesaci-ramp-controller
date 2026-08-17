@@ -18,6 +18,11 @@ start_profile:
       selector:
         select:
           options: [up, down]
+    source:
+      name: Source
+      selector:
+        select:
+          options: [automation, manual]
 select_profile:
   name: Select profile
   description: Select a profile without starting a ramp.
@@ -30,6 +35,39 @@ select_profile:
       required: true
       selector:
         text:
+execute_quick:
+  name: Execute quick action
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    action_id:
+      required: true
+      selector:
+        text:
+save_quick_actions:
+  name: Save quick actions
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    actions:
+      required: true
+      selector:
+        object:
+save_daily_plan:
+  name: Save daily plan
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    plan:
+      required: true
+      selector:
+        object:
 start:
   name: Start custom ramp
   description: Start a one-time ramp.

@@ -16,3 +16,4 @@ Available cards:
 
 - `full-card.yaml` — complete profile and curve editor.
 - `compact-card.yaml` — profile selection, current value, action, progress, and control buttons.
+- `quick-actions-card.yaml` — editable two-row quick actions configured in the integration panel.
