@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- Keep dropdowns and fields open while Home Assistant state updates arrive.
+- Replace native time pickers with manual 24-hour `HH:MM` fields.
+- Validate scheduled times before saving a profile.
+
 ## 0.5.0
 
 - Make all compact-card control buttons equal width.

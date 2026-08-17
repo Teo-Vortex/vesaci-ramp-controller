@@ -5,11 +5,14 @@ class VesaciRampController extends HTMLElement {
     this._controller = null; this._profileId = null; this._draft = null;
     this._draftKey = null; this._editing = false; this._curveDirection = "up";
     this._dragIndex = null; this._dragged = false;
+    this._interactionActive = false;
+    this.shadowRoot.addEventListener("focusin",()=>{this._interactionActive=true;});
+    this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement){this._interactionActive=false;if(!this._editing)this.render();}},150));
   }
 
   setConfig(config) { this.config = config || {}; this.render(); }
   set panel(value) { this._panel = value; }
-  set hass(value) { this._hass = value; if (!this._editing) this.render(); }
+  set hass(value) { this._hass = value; if (!this._editing && !this._interactionActive) this.render(); }
   getCardSize() { return 10; }
 
   controllers() {
@@ -118,8 +121,8 @@ class VesaciRampController extends HTMLElement {
         <div class="section"><div class="section-title">${direction.toUpperCase()} curve preview</div><svg id="graph" viewBox="0 0 600 240"><line class="axis" x1="55" y1="210" x2="565" y2="210"/><line class="axis" x1="55" y1="45" x2="55" y2="210"/><line class="gridline" x1="55" y1="127.5" x2="565" y2="127.5"/><text class="axis-label" x="52" y="230">0%</text><text class="axis-label" x="530" y="230">100% time</text><polyline class="curve" points="${polyline}"/>${controlPoints.map(([x,y],i)=>{const dy=direction==="down"?1-y:y;return `<circle class="point" data-index="${i}" cx="${55+x*510}" cy="${210-dy*165}" r="7"/>`;}).join("")}</svg><div class="hint">For Custom curves: click empty space to add, click an interior point to delete, or drag a point to move it.</div></div>
         <div class="section"><div class="section-title">Profile</div><div class="grid"><label class="wide">Name<input id="name" value="${this.esc(profile.name)}"></label><label class="check"><input id="schedule_enabled" type="checkbox" ${profile.schedule_enabled?"checked":""}>Enable daily schedule</label></div></div>
         <div class="section"><div class="section-title">UP and DOWN settings</div><div class="directions">
-          <div class="direction"><h3>▲ UP</h3><div class="grid"><label>Upper target<input id="upper_target" type="number" value="${profile.upper_target}"></label><label>Duration (s)<input id="up_duration" type="number" min="0.1" value="${profile.up_duration}"></label><label>Curve<select id="up_curve">${options(["linear","ease_in","ease_out","s_curve","step","custom"],profile.up_curve)}</select></label><label>Start every day at<input id="up_time" type="time" value="${profile.up_time}"></label></div><button id="edit_up" style="margin-top:12px">Edit UP graph</button></div>
-          <div class="direction"><h3>▼ DOWN</h3><div class="grid"><label>Lower target<input id="lower_target" type="number" value="${profile.lower_target}"></label><label>Duration (s)<input id="down_duration" type="number" min="0.1" value="${profile.down_duration}"></label><label>Curve<select id="down_curve">${options(["linear","ease_in","ease_out","s_curve","step","custom"],profile.down_curve)}</select></label><label>Start every day at<input id="down_time" type="time" value="${profile.down_time}"></label></div><button class="down" id="edit_down" style="margin-top:12px">Edit DOWN graph</button></div>
+          <div class="direction"><h3>▲ UP</h3><div class="grid"><label>Upper target<input id="upper_target" type="number" value="${profile.upper_target}"></label><label>Duration (s)<input id="up_duration" type="number" min="0.1" value="${profile.up_duration}"></label><label>Curve<select id="up_curve">${options(["linear","ease_in","ease_out","s_curve","step","custom"],profile.up_curve)}</select></label><label>Start every day at (HH:MM)<input id="up_time" type="text" inputmode="numeric" maxlength="5" placeholder="19:20" value="${profile.up_time}"></label></div><button id="edit_up" style="margin-top:12px">Edit UP graph</button></div>
+          <div class="direction"><h3>▼ DOWN</h3><div class="grid"><label>Lower target<input id="lower_target" type="number" value="${profile.lower_target}"></label><label>Duration (s)<input id="down_duration" type="number" min="0.1" value="${profile.down_duration}"></label><label>Curve<select id="down_curve">${options(["linear","ease_in","ease_out","s_curve","step","custom"],profile.down_curve)}</select></label><label>Start every day at (HH:MM)<input id="down_time" type="text" inputmode="numeric" maxlength="5" placeholder="23:10" value="${profile.down_time}"></label></div><button class="down" id="edit_down" style="margin-top:12px">Edit DOWN graph</button></div>
         </div><div class="hint">Schedule times use the Home Assistant time zone.</div></div>
         <div class="section"><div class="section-title">Update frequency</div><div class="grid"><label>Control by<select id="step_mode">${options(["count","interval"],profile.step_mode)}</select></label><label id="steps_field" style="display:${profile.step_mode==="count"?"flex":"none"}">Number of steps<input id="steps" type="number" min="1" value="${profile.steps}"></label><label id="interval_field" style="display:${profile.step_mode==="interval"?"flex":"none"}">Interval (seconds)<input id="interval" type="number" min="1" value="${profile.interval}"></label></div></div>
         <button class="save" id="save">Save profile</button><span class="message" id="message"></span>
@@ -151,7 +154,7 @@ class VesaciRampController extends HTMLElement {
     graph.onpointerup=()=>{this._dragIndex=null;this._dragNode=null;};
     graph.onclick=e=>{if(this._dragged){this._dragged=false;return;}if(e.target.classList.contains("point")){const i=Number(e.target.dataset.index);if(i>0&&i<controlPoints.length-1){profile[pointKey]=controlPoints.filter((_,j)=>j!==i);this._editing=true;this.render();}return;}if(profile[curveKey]!=="custom")return;const[x,y]=position(e);profile[pointKey]=this.normalizePoints([...(profile[pointKey]||[]),[x,y]]);this._editing=true;this.render();};
     this.shadowRoot.querySelectorAll(".point").forEach(node=>node.oncontextmenu=e=>{e.preventDefault();const i=Number(node.dataset.index);if(i>0&&i<controlPoints.length-1){profile[pointKey]=controlPoints.filter((_,j)=>j!==i);this._editing=true;this.render();}});
-    $("save").onclick=async()=>{readFields();const message=$("message");if(profile.lower_target>=profile.upper_target){message.textContent="Lower target must be below upper target.";return;}if(!profile.up_time||!profile.down_time){message.textContent="Both schedule times are required.";return;}profile.up_points=this.normalizePoints(profile.up_points);profile.down_points=this.normalizePoints(profile.down_points);message.textContent="Saving…";await this.call("save_profile",{profile:JSON.stringify(profile)});this._editing=false;message.textContent="Saved";};
+    $("save").onclick=async()=>{readFields();const message=$("message"),validTime=/^(?:[01]\d|2[0-3]):[0-5]\d$/;if(profile.lower_target>=profile.upper_target){message.textContent="Lower target must be below upper target.";return;}if(!validTime.test(profile.up_time)||!validTime.test(profile.down_time)){message.textContent="Enter both times in 24-hour HH:MM format.";return;}profile.up_points=this.normalizePoints(profile.up_points);profile.down_points=this.normalizePoints(profile.down_points);message.textContent="Saving…";await this.call("save_profile",{profile:JSON.stringify(profile)});this._editing=false;message.textContent="Saved";};
   }
 
   clamp(value){return Math.max(0,Math.min(1,value));}
@@ -162,9 +165,9 @@ customElements.define("vesaci-ramp-controller-panel",VesaciRampController);
 customElements.define("vesaci-ramp-controller-card",class extends VesaciRampController{});
 
 class VesaciRampCompactCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:"open"});this._controller=null;this._profileId=null;}
+  constructor(){super();this.attachShadow({mode:"open"});this._controller=null;this._profileId=null;this._interactionActive=false;this.shadowRoot.addEventListener("focusin",()=>{this._interactionActive=true;});this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement){this._interactionActive=false;this.render();}},150));}
   setConfig(config){this.config=config||{};this.render();}
-  set hass(value){this._hass=value;this.render();}
+  set hass(value){this._hass=value;if(!this._interactionActive)this.render();}
   getCardSize(){return 3;}
   controllers(){if(!this._hass)return[];return Object.entries(this._hass.states).filter(([,s])=>s.attributes?.controller_id&&Array.isArray(s.attributes.profiles)).map(([entity,state])=>({entity,state}));}
   current(){const all=this.controllers(),id=this._controller||this.config?.controller_id;return all.find(x=>x.state.attributes.controller_id===id)||all[0];}

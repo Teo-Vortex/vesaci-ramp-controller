@@ -11,6 +11,7 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 - Independent duration and curve for each direction
 - Step count or time interval update control
 - Optional daily UP and DOWN start times in the Home Assistant time zone
+- Manual 24-hour schedule entry using `HH:MM`
 - Linear, ease-in, ease-out, S-curve, step, and custom point curves
 - Fixed step count or fixed update interval
 - Start, pause, resume, stop, and restart/queue/ignore interruption behavior
