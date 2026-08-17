@@ -83,6 +83,12 @@ def _register_services(hass):
             call.data["profile"], call.data.get("direction")
         )
 
+    async def select_profile(call: ServiceCall):
+        controller = _controller(hass, call.data["controller_id"])
+        controller.profile(call.data["profile"])
+        controller.selected_profile = call.data["profile"]
+        controller.on_change()
+
     async def start(call: ServiceCall):
         await _controller(hass, call.data["controller_id"]).async_start_custom(
             call.data["target"], call.data["duration"], call.data.get("curve", "linear"),
@@ -114,6 +120,10 @@ def _register_services(hass):
         vol.Required("controller_id"): cv.string,
         vol.Required("profile"): cv.string,
         vol.Optional("direction"): vol.In(["up", "down"]),
+    }))
+    hass.services.async_register(DOMAIN, "select_profile", select_profile, schema=vol.Schema({
+        vol.Required("controller_id"): cv.string,
+        vol.Required("profile"): cv.string,
     }))
     hass.services.async_register(DOMAIN, "start", start, schema=vol.Schema({
         vol.Required("controller_id"): cv.string,

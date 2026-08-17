@@ -18,6 +18,18 @@ start_profile:
       selector:
         select:
           options: [up, down]
+select_profile:
+  name: Select profile
+  description: Select a profile without starting a ramp.
+  fields:
+    controller_id:
+      required: true
+      selector:
+        text:
+    profile:
+      required: true
+      selector:
+        text:
 start:
   name: Start custom ramp
   description: Start a one-time ramp.

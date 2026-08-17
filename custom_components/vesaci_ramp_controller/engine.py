@@ -22,6 +22,7 @@ class RampState:
     progress: float = 0.0
     remaining: float = 0.0
     error: str | None = None
+    direction: str | None = None
 
 
 class RampController:
@@ -154,6 +155,7 @@ class RampController:
         self._queue.clear()
         self.state.status = "idle"
         self.state.remaining = 0
+        self.state.direction = None
         self.on_change()
 
     def current_value(self) -> float:
@@ -223,6 +225,7 @@ class RampController:
             started = time.monotonic()
             paused_total = 0.0
             self.state = RampState("running", profile["id"], start, target, 0, duration)
+            self.state.direction = direction
             self.on_change()
             while True:
                 if not self._pause_event.is_set():

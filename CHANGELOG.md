@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Add a compact dashboard card with controls, current value, action, and progress.
+- Split profile settings into independent UP and DOWN panels.
+- Map pointer positions through the SVG coordinate system for accurate dragging.
+- Add custom points with an empty click and remove interior points with left or right click.
+- Add a select-profile action that does not start a ramp.
+
 ## 0.3.0
 
 - Reorganize the editor into clear control, curve, target, frequency, and schedule sections.

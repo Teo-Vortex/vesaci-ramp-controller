@@ -34,9 +34,21 @@ class RampStatusSensor(RampEntity, SensorEntity):
             "profile": self.controller.state.profile_id,
             "selected_profile": self.controller.selected_profile,
             "target_entity": self.controller.target_entity,
+            "current_value": _safe_current_value(self.controller),
+            "target_value": self.controller.state.target_value,
+            "progress": round(self.controller.state.progress * 100, 1),
+            "remaining": round(self.controller.state.remaining, 1),
+            "action": self.controller.state.direction,
             "profiles": self.controller.profiles,
             "error": self.controller.state.error,
         }
+
+
+def _safe_current_value(controller):
+    try:
+        return controller.current_value()
+    except (TypeError, ValueError):
+        return None
 
 
 class RampProgressSensor(RampEntity, SensorEntity):

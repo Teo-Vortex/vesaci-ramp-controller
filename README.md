@@ -15,6 +15,7 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 - Start, pause, resume, stop, and restart/queue/ignore interruption behavior
 - Profile dropdown and status/progress/target/remaining entities
 - Sidebar profile editor with a visual curve graph
+- Compact dashboard card for normal operation
 - Home Assistant actions for automations
 - Bulgarian and English setup translations
 
