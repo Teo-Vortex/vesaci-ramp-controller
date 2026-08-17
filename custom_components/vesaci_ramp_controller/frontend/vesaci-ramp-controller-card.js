@@ -7,6 +7,7 @@ class VesaciRampController extends HTMLElement {
     this._draft = null;
     this._draftKey = null;
     this._editing = false;
+    this._curveDirection = "up";
   }
 
   setConfig(config) { this.config = config || {}; this.render(); }
@@ -41,6 +42,20 @@ class VesaciRampController extends HTMLElement {
     if (this._draftKey !== key) {
       this._draftKey = key;
       this._draft = JSON.parse(JSON.stringify(stored));
+      const legacyTarget = Number(this._draft.target ?? 100);
+      const legacyDuration = Number(this._draft.duration ?? 60);
+      const legacyCurve = this._draft.curve || "linear";
+      const legacyPoints = this._draft.points || [[0, 0], [1, 1]];
+      this._draft.lower_target ??= 0;
+      this._draft.upper_target ??= legacyTarget;
+      this._draft.up_duration ??= legacyDuration;
+      this._draft.down_duration ??= legacyDuration;
+      this._draft.up_curve ??= legacyCurve;
+      this._draft.down_curve ??= legacyCurve;
+      this._draft.up_points ??= JSON.parse(JSON.stringify(legacyPoints));
+      this._draft.down_points ??= JSON.parse(JSON.stringify(legacyPoints));
+      this._draft.step_mode ??= "count";
+      this._draft.interval ??= 5;
       this._editing = false;
     }
     return this._draft;
@@ -64,7 +79,9 @@ class VesaciRampController extends HTMLElement {
     }
     const profile = this.profile(item);
     const attrs = item.state.attributes;
-    const points = (profile?.points || [[0, 0], [1, 1]]).map(p => [Number(p[0]), Number(p[1])]);
+    const pointKey = `${this._curveDirection}_points`;
+    const curveKey = `${this._curveDirection}_curve`;
+    const points = (profile?.[pointKey] || [[0, 0], [1, 1]]).map(p => [Number(p[0]), Number(p[1])]);
     const polyline = points.map(([x, y]) => `${20 + x * 560},${220 - y * 180}`).join(" ");
     const controllerOptions = all.map(x => `<option value="${x.state.attributes.controller_id}" ${x === item ? "selected" : ""}>${this.esc(x.state.attributes.target_entity)}</option>`).join("");
     const profileOptions = attrs.profiles.map(p => `<option value="${p.id}" ${p.id === profile.id ? "selected" : ""}>${this.esc(p.name)}</option>`).join("");
@@ -82,7 +99,7 @@ class VesaciRampController extends HTMLElement {
       <ha-card>
         <div class="top"><div class="title">Vesaci Ramp Controller</div><select id="controller">${controllerOptions}</select></div>
         <div class="meta">${this.esc(attrs.target_entity)} · Status: ${this.esc(item.state.state)}</div>
-        <div class="controls"><select id="profile">${profileOptions}</select><button id="start">▶ Start</button><button id="pause">Ⅱ Pause</button><button id="resume">▶ Resume</button><button class="stop" id="stop">■ Stop</button></div>
+        <div class="controls"><select id="profile">${profileOptions}</select><button id="up">▲ UP</button><button id="down">▼ DOWN</button><button id="pause">Ⅱ Pause</button><button id="resume">▶ Resume</button><button class="stop" id="stop">■ Stop</button></div>
         <svg id="graph" viewBox="0 0 600 240">
           <line class="grid" x1="20" y1="220" x2="580" y2="220"/><line class="grid" x1="20" y1="40" x2="20" y2="220"/>
           <polyline class="curve" points="${polyline}"/>
@@ -90,11 +107,15 @@ class VesaciRampController extends HTMLElement {
         </svg>
         <div class="fields">
           <label>Name<input id="name" value="${this.esc(profile.name)}"></label>
-          <label>Direction<select id="direction">${["auto","up","down"].map(x=>`<option ${x===(profile.direction || "auto")?"selected":""}>${x}</option>`).join("")}</select></label>
-          <label>Target<input id="target" type="number" value="${profile.target}"></label>
-          <label>Duration (s)<input id="duration" type="number" min="0.1" value="${profile.duration}"></label>
-          <label>Curve<select id="curve">${["linear","ease_in","ease_out","s_curve","step","custom"].map(x=>`<option ${x===profile.curve?"selected":""}>${x}</option>`).join("")}</select></label>
+          <label>Lower target<input id="lower_target" type="number" value="${profile.lower_target}"></label>
+          <label>Upper target<input id="upper_target" type="number" value="${profile.upper_target}"></label>
+          <label>UP duration (s)<input id="up_duration" type="number" min="0.1" value="${profile.up_duration}"></label>
+          <label>DOWN duration (s)<input id="down_duration" type="number" min="0.1" value="${profile.down_duration}"></label>
+          <label>Edit curve<select id="curve_direction">${["up","down"].map(x=>`<option ${x===this._curveDirection?"selected":""}>${x}</option>`).join("")}</select></label>
+          <label>${this._curveDirection.toUpperCase()} curve<select id="curve">${["linear","ease_in","ease_out","s_curve","step","custom"].map(x=>`<option ${x===profile[curveKey]?"selected":""}>${x}</option>`).join("")}</select></label>
+          <label>Step control<select id="step_mode">${["count","interval"].map(x=>`<option ${x===profile.step_mode?"selected":""}>${x}</option>`).join("")}</select></label>
           <label>Steps<input id="steps" type="number" min="1" value="${profile.steps || 20}"></label>
+          <label>Interval (s)<input id="interval" type="number" min="1" value="${profile.interval || 5}"></label>
           <button id="save">Save profile</button>
         </div>
       </ha-card>`;
@@ -103,37 +124,44 @@ class VesaciRampController extends HTMLElement {
 
   bind(item, profile, points) {
     const $ = id => this.shadowRoot.getElementById(id);
+    const pointKey = `${this._curveDirection}_points`;
+    const curveKey = `${this._curveDirection}_curve`;
     $("controller").onchange = e => { this._controller = e.target.value; this._profileId = null; this._draftKey = null; this._draft = null; this._editing = false; this.render(); };
     $("profile").onchange = e => { this._profileId = e.target.value; this._draftKey = null; this._draft = null; this._editing = false; this.render(); };
-    $("start").onclick = () => this.call("start_profile", { profile: profile.id });
+    $("up").onclick = () => this.call("start_profile", { profile: profile.id, direction: "up" });
+    $("down").onclick = () => this.call("start_profile", { profile: profile.id, direction: "down" });
     $("pause").onclick = () => this.call("pause"); $("resume").onclick = () => this.call("resume"); $("stop").onclick = () => this.call("stop");
     $("graph").onclick = e => {
       if (e.target.classList.contains("point")) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const x = Math.max(0, Math.min(1, ((e.clientX-rect.left)/rect.width*600-20)/560));
       const y = Math.max(0, Math.min(1, (220-(e.clientY-rect.top)/rect.height*240)/180));
-      profile.points = [...points, [Number(x.toFixed(3)), Number(y.toFixed(3))]].sort((a,b)=>a[0]-b[0]);
-      profile.curve = "custom"; this._editing = true; this.render();
+      profile[pointKey] = [...points, [Number(x.toFixed(3)), Number(y.toFixed(3))]].sort((a,b)=>a[0]-b[0]);
+      profile[curveKey] = "custom"; this._editing = true; this.render();
     };
     this.shadowRoot.querySelectorAll(".point").forEach(node => node.oncontextmenu = e => {
-      e.preventDefault(); const i = Number(node.dataset.index); if (i && i < points.length-1) { profile.points = points.filter((_,j)=>j!==i); this._editing = true; this.render(); }
+      e.preventDefault(); const i = Number(node.dataset.index); if (i && i < points.length-1) { profile[pointKey] = points.filter((_,j)=>j!==i); this._editing = true; this.render(); }
     });
     const updateDraft = () => {
       profile.name = $("name").value;
-      profile.direction = $("direction").value;
-      profile.target = Number($("target").value);
-      profile.duration = Number($("duration").value);
-      profile.curve = $("curve").value;
+      profile.lower_target = Number($("lower_target").value);
+      profile.upper_target = Number($("upper_target").value);
+      profile.up_duration = Number($("up_duration").value);
+      profile.down_duration = Number($("down_duration").value);
+      profile[curveKey] = $("curve").value;
+      profile.step_mode = $("step_mode").value;
       profile.steps = Number($("steps").value);
+      profile.interval = Number($("interval").value);
       this._editing = true;
     };
-    ["name", "direction", "target", "duration", "curve", "steps"].forEach(id => {
+    $("curve_direction").onchange = e => { updateDraft(); this._curveDirection = e.target.value; this.render(); };
+    ["name", "lower_target", "upper_target", "up_duration", "down_duration", "curve", "step_mode", "steps", "interval"].forEach(id => {
       $(id).oninput = updateDraft;
       $(id).onchange = updateDraft;
     });
     $("save").onclick = async () => {
       updateDraft();
-      const updated = {...profile, points: profile.points || points};
+      const updated = {...profile};
       await this.call("save_profile", { profile: JSON.stringify(updated) });
       this._editing = false;
       this.render();

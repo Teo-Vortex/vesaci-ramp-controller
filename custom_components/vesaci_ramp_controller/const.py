@@ -12,13 +12,17 @@ DEFAULT_PROFILES = [
         "id": "default",
         "name": "Default",
         "direction": "auto",
-        "target": 100.0,
-        "duration": 60.0,
-        "curve": "linear",
+        "lower_target": 0.0,
+        "upper_target": 100.0,
+        "up_duration": 60.0,
+        "down_duration": 60.0,
+        "up_curve": "linear",
+        "down_curve": "linear",
         "step_mode": "count",
         "steps": 20,
         "interval": 5.0,
-        "points": [[0.0, 0.0], [1.0, 1.0]],
+        "up_points": [[0.0, 0.0], [1.0, 1.0]],
+        "down_points": [[0.0, 0.0], [1.0, 1.0]],
     }
 ]
 

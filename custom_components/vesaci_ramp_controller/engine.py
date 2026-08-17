@@ -36,7 +36,7 @@ class RampController:
         self._task: asyncio.Task | None = None
         self._pause_event = asyncio.Event()
         self._pause_event.set()
-        self._queue: deque[str] = deque()
+        self._queue: deque[tuple[str, str | None]] = deque()
 
     @property
     def profiles(self) -> list[dict[str, Any]]:
@@ -48,15 +48,20 @@ class RampController:
                 return profile
         raise ValueError(f"Unknown profile: {profile_id}")
 
-    async def async_start_profile(self, profile_id: str) -> None:
+    async def async_start_profile(
+        self, profile_id: str, direction: str | None = None
+    ) -> None:
         profile = self.profile(profile_id)
+        profile = dict(profile)
+        if direction is not None:
+            profile["direction"] = direction
         self.selected_profile = profile_id
         mode = self.entry.options.get("interruption_mode", "restart")
         if self._task and not self._task.done():
             if mode == "ignore":
                 return
             if mode == "queue":
-                self._queue.append(profile_id)
+                self._queue.append((profile_id, direction))
                 self.on_change()
                 return
             await self.async_stop()
@@ -147,9 +152,26 @@ class RampController:
     async def _async_run(self, profile: dict[str, Any]) -> None:
         try:
             start = self.current_value()
-            target = float(profile["target"])
             direction = profile.get("direction", "auto")
-            duration = max(0.1, float(profile["duration"]))
+            legacy_target = float(profile.get("target", start))
+            lower_target = float(profile.get("lower_target", legacy_target))
+            upper_target = float(profile.get("upper_target", legacy_target))
+            if direction == "auto":
+                direction = "up" if start < upper_target else "down"
+            if direction == "up":
+                target = upper_target
+                duration = max(
+                    0.1, float(profile.get("up_duration", profile.get("duration", 60)))
+                )
+                selected_curve = profile.get("up_curve", profile.get("curve", "linear"))
+                selected_points = profile.get("up_points", profile.get("points"))
+            else:
+                target = lower_target
+                duration = max(
+                    0.1, float(profile.get("down_duration", profile.get("duration", 60)))
+                )
+                selected_curve = profile.get("down_curve", profile.get("curve", "linear"))
+                selected_points = profile.get("down_points", profile.get("points"))
             if (direction == "up" and target <= start) or (
                 direction == "down" and target >= start
             ):
@@ -173,7 +195,7 @@ class RampController:
                     paused_total += time.monotonic() - pause_started
                 elapsed = time.monotonic() - started - paused_total
                 progress = min(1.0, elapsed / duration)
-                shaped = curve_value(progress, profile.get("curve", "linear"), profile.get("points"))
+                shaped = curve_value(progress, selected_curve, selected_points)
                 await self._async_set_value(start + (target - start) * shaped)
                 self.state.progress = progress
                 self.state.remaining = max(0.0, duration - elapsed)
@@ -194,8 +216,8 @@ class RampController:
             self.on_change()
             self._task = None
             if self._queue:
-                next_profile = self._queue.popleft()
-                await self.async_start_profile(next_profile)
+                next_profile, next_direction = self._queue.popleft()
+                await self.async_start_profile(next_profile, next_direction)
 
 
 def _same_number(current: str, new: float) -> bool:

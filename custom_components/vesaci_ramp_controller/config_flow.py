@@ -90,13 +90,21 @@ def _validate_profiles(profiles):
     for profile in profiles:
         if not isinstance(profile, dict):
             raise ValueError
-        for key in ("id", "name", "target", "duration", "curve"):
+        for key in ("id", "name"):
             if key not in profile:
                 raise ValueError
         if not re.fullmatch(r"[a-z0-9_]+", profile["id"]) or profile["id"] in ids:
             raise ValueError
         ids.add(profile["id"])
-        if float(profile["duration"]) <= 0:
+        if "target" not in profile and (
+            "lower_target" not in profile or "upper_target" not in profile
+        ):
             raise ValueError
+        if "lower_target" in profile and "upper_target" in profile:
+            if float(profile["lower_target"]) >= float(profile["upper_target"]):
+                raise ValueError
+        for key in ("duration", "up_duration", "down_duration"):
+            if key in profile and float(profile[key]) <= 0:
+                raise ValueError
         if profile.get("direction", "auto") not in ("auto", "up", "down"):
             raise ValueError

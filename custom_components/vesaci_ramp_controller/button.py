@@ -9,7 +9,8 @@ from .entity import RampEntity
 async def async_setup_entry(hass, entry, async_add_entities):
     controller = hass.data[DOMAIN][entry.entry_id]["controller"]
     async_add_entities([
-        StartButton(controller), PauseButton(controller), ResumeButton(controller), StopButton(controller)
+        StartButton(controller), UpButton(controller), DownButton(controller),
+        PauseButton(controller), ResumeButton(controller), StopButton(controller)
     ])
 
 
@@ -19,6 +20,22 @@ class StartButton(RampEntity, ButtonEntity):
 
     def __init__(self, controller): super().__init__(controller, "start")
     async def async_press(self): await self.controller.async_start_profile(self.controller.selected_profile)
+
+
+class UpButton(RampEntity, ButtonEntity):
+    _attr_name = "Start UP"
+    _attr_icon = "mdi:arrow-up-bold"
+
+    def __init__(self, controller): super().__init__(controller, "start_up")
+    async def async_press(self): await self.controller.async_start_profile(self.controller.selected_profile, "up")
+
+
+class DownButton(RampEntity, ButtonEntity):
+    _attr_name = "Start DOWN"
+    _attr_icon = "mdi:arrow-down-bold"
+
+    def __init__(self, controller): super().__init__(controller, "start_down")
+    async def async_press(self): await self.controller.async_start_profile(self.controller.selected_profile, "down")
 
 
 class PauseButton(RampEntity, ButtonEntity):

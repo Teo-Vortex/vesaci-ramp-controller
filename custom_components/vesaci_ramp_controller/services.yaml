@@ -12,6 +12,12 @@ start_profile:
       required: true
       selector:
         text:
+    direction:
+      name: Direction
+      description: Optional explicit direction using the profile's upper or lower target.
+      selector:
+        select:
+          options: [up, down]
 start:
   name: Start custom ramp
   description: Start a one-time ramp.

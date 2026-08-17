@@ -6,7 +6,9 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 
 - `number` and `input_number` targets
 - Multiple named profiles per controller
-- Auto, Up, and Down direction per profile
+- Lower and upper targets with explicit Up and Down controls
+- Independent duration and curve for each direction
+- Step count or time interval update control
 - Linear, ease-in, ease-out, S-curve, step, and custom point curves
 - Fixed step count or fixed update interval
 - Start, pause, resume, stop, and restart/queue/ignore interruption behavior

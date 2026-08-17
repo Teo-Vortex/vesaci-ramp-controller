@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Add lower and upper targets to every profile.
+- Add independent UP and DOWN durations, curves, and custom curve points.
+- Add explicit UP and DOWN controls and automation direction.
+- Expose step-count and time-interval control in the visual editor.
+- Migrate legacy profiles in the editor without discarding existing settings.
+
 ## 0.1.1
 
 - Keep unsaved profile edits stable while Home Assistant state updates arrive.
