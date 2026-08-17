@@ -8,8 +8,8 @@ class VesaciRampController extends HTMLElement {
     this._tab = "overview"; this._dataController = null;
     this._quickDraft = []; this._dailyDraft = {enabled:false,points:[]};
     this._interactionActive = false;
-    this.shadowRoot.addEventListener("focusin",()=>{this._interactionActive=true;});
-    this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement){this._interactionActive=false;if(!this._editing)this.render();}},150));
+    this.shadowRoot.addEventListener("focusin",e=>{if(e.target.matches?.("input,select,textarea"))this._interactionActive=true;});
+    this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement?.matches?.("input,select,textarea")){this._interactionActive=false;if(!this._editing)this.render();}},150));
   }
 
   setConfig(config) { this.config = config || {}; this.render(); }
@@ -192,7 +192,7 @@ customElements.define("vesaci-ramp-controller-panel",VesaciRampController);
 customElements.define("vesaci-ramp-controller-card",class extends VesaciRampController{});
 
 class VesaciRampCompactCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:"open"});this._controller=null;this._profileId=null;this._interactionActive=false;this.shadowRoot.addEventListener("focusin",()=>{this._interactionActive=true;});this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement){this._interactionActive=false;this.render();}},150));}
+  constructor(){super();this.attachShadow({mode:"open"});this._controller=null;this._profileId=null;this._interactionActive=false;this.shadowRoot.addEventListener("focusin",e=>{if(e.target.matches?.("input,select,textarea"))this._interactionActive=true;});this.shadowRoot.addEventListener("focusout",()=>setTimeout(()=>{if(!this.shadowRoot.activeElement?.matches?.("input,select,textarea")){this._interactionActive=false;this.render();}},150));}
   setConfig(config){this.config=config||{};this.render();}
   set hass(value){this._hass=value;if(!this._interactionActive)this.render();}
   getCardSize(){return 3;}

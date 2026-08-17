@@ -7,7 +7,7 @@ from pathlib import Path
 import voluptuous as vol
 
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.components import panel_custom
+from homeassistant.components import frontend, panel_custom
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
@@ -27,10 +27,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     if not hass.services.has_service(DOMAIN, "start_profile"):
         _register_services(hass)
-    frontend = Path(__file__).parent / "frontend" / "vesaci-ramp-controller-card.js"
+    frontend_file = Path(__file__).parent / "frontend" / "vesaci-ramp-controller-card.js"
     await hass.http.async_register_static_paths(
-        [StaticPathConfig("/vesaci_ramp_controller/card.js", str(frontend), False)]
+        [StaticPathConfig("/vesaci_ramp_controller/card.js", str(frontend_file), False)]
     )
+    frontend.add_extra_js_url(hass, "/vesaci_ramp_controller/card.js")
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="vesaci-ramp-controller-panel",

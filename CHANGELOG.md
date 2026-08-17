@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0-test.1
+
+- Allow STOP and other buttons to update the UI immediately while focused.
+- Automatically load dashboard card modules on every Home Assistant frontend refresh.
+- Keep focus protection only for editable inputs and dropdowns.
+
 ## 0.6.0-test
 
 - Add tabbed Overview, Profiles, Quick Actions, Daily Plan, and Settings interface.
