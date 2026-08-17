@@ -6,6 +6,7 @@ PLATFORMS = ["sensor", "select", "button"]
 CONF_TARGET_ENTITY = "target_entity"
 CONF_PROFILES = "profiles"
 CONF_INTERRUPTION_MODE = "interruption_mode"
+CONF_SELECTED_PROFILE = "selected_profile"
 
 DEFAULT_PROFILES = [
     {

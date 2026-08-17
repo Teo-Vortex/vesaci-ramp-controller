@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Make all compact-card control buttons equal width.
+- Show the selected profile's minimum and maximum on the compact card.
+- Show only the active step-count or interval setting.
+- Add creation and persistence of multiple independent profiles.
+- Fix the first custom-graph click after dragging being ignored.
+
 ## 0.4.0
 
 - Add a compact dashboard card with controls, current value, action, and progress.

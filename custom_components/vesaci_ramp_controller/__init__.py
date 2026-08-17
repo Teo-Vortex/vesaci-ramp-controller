@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
 from .config_flow import _validate_profiles
-from .const import CONF_PROFILES, DOMAIN, PLATFORMS
+from .const import CONF_PROFILES, CONF_SELECTED_PROFILE, DOMAIN, PLATFORMS
 from .engine import RampController
 
 
@@ -88,6 +88,9 @@ def _register_services(hass):
         controller.profile(call.data["profile"])
         controller.selected_profile = call.data["profile"]
         controller.on_change()
+        options = dict(controller.entry.options)
+        options[CONF_SELECTED_PROFILE] = call.data["profile"]
+        hass.config_entries.async_update_entry(controller.entry, options=options)
 
     async def start(call: ServiceCall):
         await _controller(hass, call.data["controller_id"]).async_start_custom(
@@ -113,6 +116,7 @@ def _register_services(hass):
         _validate_profiles(profiles)
         options = dict(controller.entry.options)
         options[CONF_PROFILES] = profiles
+        options[CONF_SELECTED_PROFILE] = profile["id"]
         hass.config_entries.async_update_entry(controller.entry, options=options)
 
     common = vol.Schema({vol.Required("controller_id"): cv.string})

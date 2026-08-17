@@ -6,6 +6,7 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 
 - `number` and `input_number` targets
 - Multiple named profiles per controller
+- Create additional profiles directly from the visual editor
 - Lower and upper targets with explicit Up and Down controls
 - Independent duration and curve for each direction
 - Step count or time interval update control

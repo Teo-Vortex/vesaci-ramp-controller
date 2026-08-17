@@ -12,6 +12,8 @@ from typing import Any, Callable
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
 
+from .const import CONF_SELECTED_PROFILE
+
 
 @dataclass
 class RampState:
@@ -34,7 +36,12 @@ class RampController:
         self.target_entity = entry.data["target_entity"]
         self.on_change = on_change
         self.state = RampState()
-        self.selected_profile = self.profiles[0]["id"] if self.profiles else None
+        saved_profile = entry.options.get(CONF_SELECTED_PROFILE)
+        profile_ids = {profile["id"] for profile in self.profiles}
+        self.selected_profile = (
+            saved_profile if saved_profile in profile_ids
+            else self.profiles[0]["id"] if self.profiles else None
+        )
         self._task: asyncio.Task | None = None
         self._pause_event = asyncio.Event()
         self._pause_event.set()
