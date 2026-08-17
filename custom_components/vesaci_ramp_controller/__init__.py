@@ -22,6 +22,8 @@ from .const import (
 )
 from .engine import RampController
 
+FRONTEND_VERSION = "0.6.0-test.3"
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
@@ -31,12 +33,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig("/vesaci_ramp_controller/card.js", str(frontend_file), False)]
     )
-    frontend.add_extra_js_url(hass, "/vesaci_ramp_controller/card.js")
+    frontend_url = f"/vesaci_ramp_controller/card.js?v={FRONTEND_VERSION}"
+    frontend.add_extra_js_url(hass, frontend_url)
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="vesaci-ramp-controller-panel",
         frontend_url_path="vesaci-ramp-controller",
-        module_url="/vesaci_ramp_controller/card.js",
+        module_url=frontend_url,
         sidebar_title="Ramp Controller",
         sidebar_icon="mdi:slope-uphill",
         config={},

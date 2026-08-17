@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0-test.3
+
+- Fixed dashboard cards remaining on an infinite loading spinner when the frontend module is loaded more than once.
+- Added frontend cache busting tied to the integration version.
+
 ## 0.6.0-test.2
 
 - Replace paired Quick Action templates with independent time and target selectors.
