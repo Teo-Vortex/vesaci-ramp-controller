@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- Automatically create the Vesaci dashboard card resource in Lovelace storage mode.
+- Automatically update the resource URL on integration upgrades for reliable cache invalidation.
+- Preserve all existing Lovelace resources by forcing the resource collection to load before modifying it.
+- Fall back to global frontend loading when Lovelace resources are managed in YAML mode.
+
 ## 0.6.0-test.3
 
 - Fixed dashboard cards remaining on an infinite loading spinner when the frontend module is loaded more than once.

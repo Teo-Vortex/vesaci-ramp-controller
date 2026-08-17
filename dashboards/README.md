@@ -2,13 +2,13 @@
 
 The integration provides an automatic sidebar panel. These files are optional examples for users who also want the editor embedded in a Lovelace dashboard.
 
-For the embedded card only, register this module resource:
+The integration registers this module resource automatically when Home Assistant uses the default Lovelace storage mode:
 
 ```text
-/vesaci_ramp_controller/card.js
+/vesaci_ramp_controller/card.js?v=0.7.0
 ```
 
-Resource type: `JavaScript Module`.
+Resource type: `JavaScript Module`. Manual registration is only needed when Lovelace resources are explicitly configured in YAML mode.
 
 The card discovers configured Ramp Controllers automatically, so no Home Assistant entity ID is required in its YAML configuration.
 

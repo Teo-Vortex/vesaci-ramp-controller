@@ -35,7 +35,7 @@ Only the target entity is selected during setup. All ramp configuration is owned
 4. Go to **Settings → Devices & services → Add integration**.
 5. Search for **Vesaci Ramp Controller** and select the target entity.
 
-The integration creates a **Ramp Controller** sidebar panel automatically. No dashboard resource is required for the panel.
+The integration creates a **Ramp Controller** sidebar panel and registers its dashboard cards automatically. No manual dashboard resource is required when Lovelace resources use the default storage mode.
 
 ## Automations
 
@@ -62,9 +62,9 @@ actions:
       steps: 30
 ```
 
-## Optional dashboard card
+## Dashboard cards
 
-The sidebar panel requires no manual setup. YAML examples for embedding the same UI in a dashboard are in [`dashboards/`](dashboards/). A dashboard resource is only needed when using the optional embedded custom card.
+YAML examples are in [`dashboards/`](dashboards/). The card resource is installed and versioned automatically. Users who explicitly manage Lovelace resources in YAML mode must add `/vesaci_ramp_controller/card.js?v=0.7.0` as a module resource themselves.
 
 ## Safety
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 import voluptuous as vol
 
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components import frontend, panel_custom
+from homeassistant.components.lovelace.const import MODE_STORAGE
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
@@ -22,7 +24,50 @@ from .const import (
 )
 from .engine import RampController
 
-FRONTEND_VERSION = "0.6.0-test.3"
+FRONTEND_VERSION = "0.7.0"
+FRONTEND_PATH = "/vesaci_ramp_controller/card.js"
+_LOGGER = logging.getLogger(__name__)
+
+
+async def _async_register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
+    """Create or update the dashboard module resource in storage mode."""
+    lovelace_data = hass.data.get("lovelace")
+    if lovelace_data is None:
+        _LOGGER.warning("Lovelace is unavailable; dashboard cards were not registered")
+        return
+
+    resource_mode = getattr(lovelace_data, "resource_mode", None)
+    resources = getattr(lovelace_data, "resources", None)
+    if isinstance(lovelace_data, dict):
+        resource_mode = lovelace_data.get("resource_mode", lovelace_data.get("mode"))
+        resources = lovelace_data.get("resources")
+
+    if resource_mode != MODE_STORAGE or resources is None:
+        _LOGGER.warning(
+            "Lovelace resources use YAML mode; add %s as a module resource", url
+        )
+        frontend.add_extra_js_url(hass, url)
+        return
+
+    # async_get_info() safely triggers the lazy storage load on both old and
+    # new Home Assistant releases. Never create an item before this completes.
+    await resources.async_get_info()
+    base_url = f"{FRONTEND_PATH}?"
+    existing = next(
+        (
+            item
+            for item in resources.async_items()
+            if item.get("url") == FRONTEND_PATH
+            or str(item.get("url", "")).startswith(base_url)
+        ),
+        None,
+    )
+    if existing is None:
+        await resources.async_create_item({"url": url, "res_type": "module"})
+    elif existing.get("url") != url or existing.get("type") != "module":
+        await resources.async_update_item(
+            existing["id"], {"url": url, "res_type": "module"}
+        )
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -31,10 +76,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         _register_services(hass)
     frontend_file = Path(__file__).parent / "frontend" / "vesaci-ramp-controller-card.js"
     await hass.http.async_register_static_paths(
-        [StaticPathConfig("/vesaci_ramp_controller/card.js", str(frontend_file), False)]
+        [StaticPathConfig(FRONTEND_PATH, str(frontend_file), False)]
     )
-    frontend_url = f"/vesaci_ramp_controller/card.js?v={FRONTEND_VERSION}"
-    frontend.add_extra_js_url(hass, frontend_url)
+    frontend_url = f"{FRONTEND_PATH}?v={FRONTEND_VERSION}"
+    await _async_register_lovelace_resource(hass, frontend_url)
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="vesaci-ramp-controller-panel",
