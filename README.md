@@ -20,7 +20,7 @@ A universal, profile-based ramp controller for Home Assistant. It gradually chan
 - Compact dashboard card for normal operation
 - Tabbed management panel with Overview, Profiles, Quick Actions, Daily Plan, and Settings
 - Priority-based conflict arbitration with an activity log
-- Quick Action card with independent time and target selectors
+- Quick Action card with configured time presets and direct target-value input
 - Visual 24-hour Daily Plan with deadline-based and continuous transitions
 - Home Assistant actions for automations
 - Bulgarian and English setup translations
@@ -64,7 +64,7 @@ actions:
 
 ## Dashboard cards
 
-YAML examples are in [`dashboards/`](dashboards/). The card resource is installed and versioned automatically. Users who explicitly manage Lovelace resources in YAML mode must add `/vesaci_ramp_controller/card.js?v=0.7.0` as a module resource themselves.
+YAML examples are in [`dashboards/`](dashboards/). The card resource is installed and versioned automatically. Users who explicitly manage Lovelace resources in YAML mode must add `/vesaci_ramp_controller/card.js?v=0.7.1` as a module resource themselves.
 
 ## Safety
 

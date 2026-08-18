@@ -5,7 +5,7 @@ The integration provides an automatic sidebar panel. These files are optional ex
 The integration registers this module resource automatically when Home Assistant uses the default Lovelace storage mode:
 
 ```text
-/vesaci_ramp_controller/card.js?v=0.7.0
+/vesaci_ramp_controller/card.js?v=0.7.1
 ```
 
 Resource type: `JavaScript Module`. Manual registration is only needed when Lovelace resources are explicitly configured in YAML mode.
@@ -15,5 +15,5 @@ The card discovers configured Ramp Controllers automatically, so no Home Assista
 Available cards:
 
 - `full-card.yaml` — complete profile and curve editor.
-- `compact-card.yaml` — profile selection, current value, action, progress, and control buttons.
-- `quick-actions-card.yaml` — select a configured duration and target, then start the ramp.
+- `compact-card.yaml` — profile selection, current value, action, progress, remaining time, and control buttons.
+- `quick-actions-card.yaml` — select a configured duration, enter a target value, then start the ramp.

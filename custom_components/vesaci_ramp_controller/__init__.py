@@ -24,7 +24,7 @@ from .const import (
 )
 from .engine import RampController
 
-FRONTEND_VERSION = "0.7.0"
+FRONTEND_VERSION = "0.7.1"
 FRONTEND_PATH = "/vesaci_ramp_controller/card.js"
 _LOGGER = logging.getLogger(__name__)
 

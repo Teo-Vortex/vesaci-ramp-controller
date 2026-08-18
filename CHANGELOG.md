@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+- Show the action's remaining time in the compact dashboard card.
+- Keep Quick Action durations as configured presets and replace target presets with direct numeric input.
+- Apply the controlled entity's minimum, maximum, and step constraints to the Quick Action target field.
+- Simplify Quick Action settings to duration presets.
+
 ## 0.7.0
 
 - Automatically create the Vesaci dashboard card resource in Lovelace storage mode.
